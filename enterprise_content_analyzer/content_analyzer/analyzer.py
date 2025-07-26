@@ -39,6 +39,7 @@ class ContentAnalyser:
                         "priority": "High, Medium, or Low"
                     }
                 ],
+                "business_impact": "e.g., High, Medium, Low",
                 "executive_summary": "A concise summary of the most critical insights and recommendations."
             },
             "Competitive Intelligence": {
@@ -68,11 +69,17 @@ class ContentAnalyser:
                         "recommendation": "e.g., Launch a targeted marketing campaign, Develop a new feature"
                     }
                 ],
+                "sentiment_analysis": {
+                    "sentiment": "Positive, Negative, or Neutral",
+                    "confidence_score": "Score from 0.0 to 1.0"
+                },
+                "business_impact": "e.g., High, Medium, Low",
                 "executive_summary": "A concise summary of the competitive landscape, key threats, and strategic opportunities."
             },
             "Customer Feedback": {
                 "sentiment_analysis": {
                     "overall_sentiment": "Positive, Negative, or Neutral",
+                    "confidence_score": "Score from 0.0 to 1.0",
                     "sentiment_distribution": {
                         "positive": "e.g., 60%",
                         "negative": "e.g., 30%",
@@ -104,6 +111,7 @@ class ContentAnalyser:
                         "effort": "High, Medium, or Low"
                     }
                 ],
+                "business_impact": "e.g., High, Medium, Low",
                 "executive_summary": "A concise summary of customer sentiment, key pain points, and actionable recommendations."
             }
         }
