@@ -2,6 +2,8 @@ import os
 import openai
 from dotenv import load_dotenv
 import json
+import time
+from datetime import datetime
 
 load_dotenv()
 
@@ -145,3 +147,28 @@ Here is the text to analyze:
             return {"error": "Failed to decode JSON response from the API."}
         except Exception as e:
             return {"error": f"An unexpected error occurred: {e}"}
+
+    def batch_analyze(self, documents: list, analysis_type: str, progress_callback=None):
+        results = []
+        total_documents = len(documents)
+        for i, doc in enumerate(documents):
+            doc_id = doc.get("id", f"doc_{i}")
+            text = doc.get("text", "")
+            
+            if not text:
+                results.append({"id": doc_id, "timestamp": datetime.now().isoformat(), "error": "Document text is empty."})
+                if progress_callback:
+                    progress_callback(i + 1, total_documents)
+                continue
+
+            try:
+                analysis_result = self.analyze_content(text, analysis_type)
+                results.append({"id": doc_id, "timestamp": datetime.now().isoformat(), "analysis": analysis_result})
+            except Exception as e:
+                results.append({"id": doc_id, "timestamp": datetime.now().isoformat(), "error": f"Analysis failed: {e}"})
+            
+            time.sleep(0.5) # Rate limiting
+            
+            if progress_callback:
+                progress_callback(i + 1, total_documents)
+        return results

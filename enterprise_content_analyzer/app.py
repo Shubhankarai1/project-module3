@@ -35,23 +35,38 @@ with col1:
     uploaded_file = st.file_uploader(
         "Upload a document to analyze",
         type=["txt", "pdf", "docx"],
-        accept_multiple_files=False
+        accept_multiple_files=True
     )
 
     if uploaded_file:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(uploaded_file.name)[1]) as tmp_file:
-            tmp_file.write(uploaded_file.getvalue())
-            tmp_file_path = tmp_file.name
+        st.session_state.processed_documents = []
+        processor = DocumentProcessor()
+        for i, file in enumerate(uploaded_file):
+            with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.name)[1]) as tmp_file:
+                tmp_file.write(file.getvalue())
+                tmp_file_path = tmp_file.name
+            
+            try:
+                text, metadata = processor.process_file(tmp_file_path)
+                st.session_state.processed_documents.append({
+                    "id": f"doc_{i+1}",
+                    "name": file.name,
+                    "text": text,
+                    "metadata": metadata
+                })
+            except Exception as e:
+                st.error(f"Error processing file {file.name}: {e}. Skipping this file.")
+            finally:
+                os.remove(tmp_file_path)
         
-        try:
-            processor = DocumentProcessor()
-            st.session_state.processed_text, st.session_state.metadata = processor.process_file(tmp_file_path)
-        except Exception as e:
-            st.error(f"Error processing file: {e}. Please ensure it's a valid PDF, DOCX, or TXT file.")
+        if st.session_state.processed_documents:
+            # For displaying estimated cost, use the first document's token count as a proxy or sum them up.
+            # For now, let's just show the first document's details.
+            st.session_state.processed_text = st.session_state.processed_documents[0]["text"]
+            st.session_state.metadata = st.session_state.processed_documents[0]["metadata"]
+        else:
             st.session_state.processed_text = None
             st.session_state.metadata = None
-        finally:
-            os.remove(tmp_file_path)
 
     analyze_button = st.button("Analyse")
 
@@ -87,12 +102,11 @@ def display_analysis_results(analysis, analysis_type):
         else:
             st.markdown(value)
 
-if analyze_button and st.session_state.processed_text:
-    content_input = st.session_state.processed_text
-    estimated_cost = cost_tracker.calculate_cost(st.session_state.metadata['token_count'])
+if analyze_button and st.session_state.get('processed_documents'):
+    total_estimated_cost = sum(cost_tracker.calculate_cost(doc['metadata']['token_count']) for doc in st.session_state.processed_documents)
 
-    if not cost_tracker.can_afford(estimated_cost):
-        st.error(f"Analysis cannot be performed. Remaining daily budget: ${cost_tracker.get_remaining_daily_budget():.2f}, Monthly budget: ${cost_tracker.get_remaining_monthly_budget():.2f}. Estimated cost: ${estimated_cost:.2f}")
+    if not cost_tracker.can_afford(total_estimated_cost):
+        st.error(f"Analysis cannot be performed. Remaining daily budget: ${cost_tracker.get_remaining_daily_budget():.2f}, Monthly budget: ${cost_tracker.get_remaining_monthly_budget():.2f}. Total estimated cost: ${total_estimated_cost:.2f}")
         st.stop()
 
     try:
@@ -101,18 +115,42 @@ if analyze_button and st.session_state.processed_text:
         st.error(e)
         st.stop()
 
-    with st.spinner(f"Analyzing content with {analysis_type} analysis..."): 
-        analysis = analyser.analyze_content(content_input, analysis_type)
-        cost_tracker.record_usage(estimated_cost)
-        
-        st.divider()
-        st.subheader("Analysis Results")
+    st.divider()
+    st.subheader("Analysis Results")
+    
+    progress_text = "Operation in progress. Please wait."
+    my_bar = st.progress(0, text=progress_text)
 
-        if "error" in analysis:
-            st.error(analysis["error"])
+    def update_progress(current, total):
+        progress_percentage = (current / total) 
+        my_bar.progress(progress_percentage, text=f"Analyzing document {current} of {total}...")
+
+    batch_results = analyser.batch_analyze(st.session_state.processed_documents, analysis_type, update_progress)
+    
+    my_bar.empty() # Clear the progress bar after completion
+
+    total_actual_cost = 0
+    for result in batch_results:
+        doc_id = result.get("id", "N/A")
+        doc_name = next((doc['name'] for doc in st.session_state.processed_documents if doc.get('id') == doc_id), f"Document {doc_id}")
+        timestamp = result.get("timestamp", "N/A")
+
+        st.markdown(f"#### Results for {doc_name} (ID: {doc_id}) at {timestamp}")
+        if "error" in result:
+            st.error(f"Error analyzing {doc_name}: {result['error']}")
         else:
-            st.success("Analysis complete!")
-            display_analysis_results(analysis, analysis_type)
+            st.success(f"Analysis complete for {doc_name}!")
+            display_analysis_results(result["analysis"], analysis_type)
+            # Assuming cost is calculated per document and returned or can be re-calculated
+            # For simplicity, let's re-calculate based on original token count if analysis was successful
+            original_doc = next((doc for doc in st.session_state.processed_documents if doc.get('id') == doc_id), None)
+            if original_doc:
+                doc_cost = cost_tracker.calculate_cost(original_doc['metadata']['token_count'])
+                total_actual_cost += doc_cost
+        st.markdown("---") # Separator for each document's results
+    
+    cost_tracker.record_usage(total_actual_cost)
+    st.success(f"Batch analysis complete! Total cost recorded: ${total_actual_cost:.4f}")
 
-elif analyze_button and not st.session_state.processed_text:
-    st.warning("Please upload a document to analyze.")
+elif analyze_button and not st.session_state.get('processed_documents'):
+    st.warning("Please upload one or more documents to analyze.")

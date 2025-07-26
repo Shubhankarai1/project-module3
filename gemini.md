@@ -35,3 +35,7 @@ This document outlines the plan for creating the Enterprise Content Analysis Pla
 11. Display remaining budget in the Streamlit sidebar.
 12. Check if an analysis can be afforded before processing.
 13. The analysis results will be displayed in a structured JSON format in the Streamlit app.
+14. Implement a `batch_analyze` method in `ContentAnalyser` to process multiple documents, including progress tracking and rate limiting (0.5 seconds delay between requests).
+15. Return analysis results with document IDs and timestamps.
+16. Handle errors gracefully during batch processing, continuing if one document fails.
+17. Add a progress bar in the Streamlit app using `st.progress()` for batch analysis.
