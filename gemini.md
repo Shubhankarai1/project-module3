@@ -20,3 +20,4 @@ This document outlines the plan for creating the Enterprise Content Analysis Pla
 1.  Create the project directory `enterprise_content_analyzer`.
 2.  Create the files and directories as outlined in the project structure.
 3.  Provide instructions for setting up the virtual environment and installing dependencies using `uv`.
+4.  Create a Streamlit app with a professional title, a text area for content, an “Analyse” button, and a display for the analysis results.
