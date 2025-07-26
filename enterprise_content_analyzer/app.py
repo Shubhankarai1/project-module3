@@ -6,6 +6,7 @@ from content_analyzer.cost_tracker import CostTracker
 import os
 import tempfile
 import json
+import plotly.express as px
 
 st.set_page_config(layout="wide")
 
@@ -28,7 +29,7 @@ st.sidebar.write(f"Daily Remaining: **${cost_tracker.get_remaining_daily_budget(
 st.sidebar.write(f"Monthly Remaining: **${cost_tracker.get_remaining_monthly_budget():.2f}**")
 
 # Tabs for Single Analysis and Batch Processing
-tab1, tab2 = st.tabs(["Single Analysis", "Batch Processing"])
+tab1, tab2, tab3 = st.tabs(["Single Analysis", "Batch Processing", "Analytics"])
 
 def display_analysis_results(analysis, analysis_type):
     st.markdown("### Analysis Report")
@@ -104,7 +105,7 @@ with tab1:
     if single_analyze_button and st.session_state.get('processed_text'):
         estimated_cost = cost_tracker.calculate_cost(st.session_state.metadata['token_count'])
         if not cost_tracker.can_afford(estimated_cost):
-            st.error(f"Analysis cannot be performed. Remaining daily budget: ${cost_tracker.get_remaining_daily_budget():.2f}, Monthly budget: ${cost_tracker.get_remaining_monthly_budget():.2f}. Total estimated cost: ${estimated_cost:.2f}")
+            st.error(f"Analysis cannot be performed. Remaining daily budget: ${cost_tracker.get_remaining_daily_budget():.2f}, Monthly budget: ${cost_tracker.get_remaining_monthly_budget():.2f}. Total estimated cost: ${total_estimated_cost:.2f}")
             st.stop()
 
         try:
@@ -261,3 +262,47 @@ with tab2:
             st.warning("No documents were successfully processed for batch analysis.")
     elif batch_analyze_button and not batch_uploaded_files:
         st.warning("Please upload one or more documents for batch analysis.")
+
+with tab3:
+    st.subheader("Analysis Dashboard")
+    if not st.session_state.batch_results_df.empty:
+        df = st.session_state.batch_results_df.copy()
+        
+        # Sentiment distribution pie chart
+        st.markdown("#### Sentiment Distribution")
+        sentiment_counts = df['Sentiment'].value_counts().reset_index()
+        sentiment_counts.columns = ['Sentiment', 'Count']
+        fig_sentiment = px.pie(sentiment_counts, values='Count', names='Sentiment', title='Distribution of Sentiments')
+        st.plotly_chart(fig_sentiment, use_container_width=True)
+
+        # Business impact Bar chart
+        st.markdown("#### Business Impact Breakdown")
+        business_impact_counts = df['Business Impact'].value_counts().reset_index()
+        business_impact_counts.columns = ['Business Impact', 'Count']
+        fig_impact = px.bar(business_impact_counts, x='Business Impact', y='Count', title='Business Impact Breakdown')
+        st.plotly_chart(fig_impact, use_container_width=True)
+
+        # Confidence score histogram
+        st.markdown("#### Confidence Score Distribution")
+        # Filter out non-numeric confidence scores
+        numeric_confidence = pd.to_numeric(df['Confidence'], errors='coerce').dropna()
+        if not numeric_confidence.empty:
+            fig_confidence = px.histogram(numeric_confidence, nbins=10, title='Distribution of Confidence Scores')
+            st.plotly_chart(fig_confidence, use_container_width=True)
+        else:
+            st.info("No numeric confidence scores available for histogram.")
+
+        # Cost per document analysis
+        st.markdown("#### Cost Per Document")
+        fig_cost = px.bar(df, x='Document', y='Cost', title='Cost Per Document Analysis')
+        st.plotly_chart(fig_cost, use_container_width=True)
+
+        # Content type breakdown
+        st.markdown("#### Content Type Breakdown")
+        content_type_counts = df['Type'].value_counts().reset_index()
+        content_type_counts.columns = ['Type', 'Count']
+        fig_type = px.pie(content_type_counts, values='Count', names='Type', title='Breakdown of Content Types')
+        st.plotly_chart(fig_type, use_container_width=True)
+
+    else:
+        st.info("Run a batch analysis to see analytics.")

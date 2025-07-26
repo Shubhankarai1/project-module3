@@ -31,7 +31,7 @@ This document outlines the plan for creating the Enterprise Content Analysis Pla
     -   **General Business:** Focuses on content classification, key insights, sentiment, strategic implications, risks, action items, and now includes **Business Impact**.
     -   **Competitive Intelligence:** Concentrates on competitor identification, market positioning, threat analysis, opportunity analysis, and now includes **Sentiment Analysis** and **Business Impact**.
     -   **Customer Feedback:** Centers on sentiment analysis, pain point identification, feature requests, satisfaction drivers, actionable recommendations, and now includes **Business Impact**.
-9.  Implement a `CostTracker` class to track daily and monthly API usage, save data to a JSON file, and calculate costs based on OpenAI pricing (with placeholder values for now). It will have methods for recording usage, getting daily/monthly usage, and checking affordability.
+9.  Implement a `CostTracker` class to track daily and monthly API usage, save data to a JSON file, and calculate costs based on OpenAI pricing (with placeholder values for now).
 10. Set daily budget limit to $450 and monthly to $2000.
 11. Display remaining budget in the Streamlit sidebar.
 12. Check if an analysis can be afforded before processing.
@@ -43,3 +43,9 @@ This document outlines the plan for creating the Enterprise Content Analysis Pla
 17. Add a progress bar in the Streamlit app using `st.progress()` for batch analysis.
 18. **New**: Add a download button for CSV export of batch analysis results.
 19. **New**: Calculate and display total cost and average confidence for batch analysis.
+20. **New**: Add an "Analytics" tab with interactive visualizations using Plotly:
+    -   Sentiment distribution pie chart
+    -   Business impact bar chart
+    -   Confidence score histogram
+    -   Cost per document analysis
+    -   Content type breakdown
