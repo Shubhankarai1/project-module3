@@ -1,6 +1,7 @@
 import streamlit as st
 from content_analyzer.analyzer import ContentAnalyser
 from content_analyzer.document_processor import DocumentProcessor
+from content_analyzer.cost_tracker import CostTracker
 import os
 import tempfile
 
@@ -13,6 +14,14 @@ if 'processed_text' not in st.session_state:
     st.session_state.processed_text = None
 if 'metadata' not in st.session_state:
     st.session_state.metadata = None
+
+# Initialize CostTracker
+cost_tracker = CostTracker()
+
+# Display remaining budget in the sidebar
+st.sidebar.subheader("Budget Information")
+st.sidebar.write(f"Daily Remaining: **${cost_tracker.get_remaining_daily_budget():.2f}**")
+st.sidebar.write(f"Monthly Remaining: **${cost_tracker.get_remaining_monthly_budget():.2f}**")
 
 col1, col2 = st.columns([2, 1])
 
@@ -53,9 +62,8 @@ with col2:
         )
         
         st.subheader("Estimated Cost")
-        # Assuming a placeholder cost of $0.0005 per 1000 tokens ($0.50 per 1M tokens)
-        cost = (st.session_state.metadata['token_count'] / 1000) * 0.0005
-        st.success(f"Estimated cost for this analysis: **${cost:.4f}**")
+        estimated_cost = cost_tracker.calculate_cost(st.session_state.metadata['token_count'])
+        st.success(f"Estimated cost for this analysis: **${estimated_cost:.4f}**")
     else:
         st.info("Upload a document to see details and cost estimation.")
 
@@ -77,6 +85,12 @@ def display_analysis_results(analysis, analysis_type):
 
 if analyze_button and st.session_state.processed_text:
     content_input = st.session_state.processed_text
+    estimated_cost = cost_tracker.calculate_cost(st.session_state.metadata['token_count'])
+
+    if not cost_tracker.can_afford(estimated_cost):
+        st.error(f"Analysis cannot be performed. Remaining daily budget: ${cost_tracker.get_remaining_daily_budget():.2f}, Monthly budget: ${cost_tracker.get_remaining_monthly_budget():.2f}. Estimated cost: ${estimated_cost:.2f}")
+        st.stop()
+
     try:
         analyser = ContentAnalyser()
     except ValueError as e:
@@ -85,6 +99,7 @@ if analyze_button and st.session_state.processed_text:
 
     with st.spinner(f"Analyzing content with {analysis_type} analysis..."): 
         analysis = analyser.analyze_content(content_input, analysis_type)
+        cost_tracker.record_usage(estimated_cost)
         
         st.divider()
         st.subheader("Analysis Results")

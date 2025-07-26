@@ -10,7 +10,8 @@ This document outlines the plan for creating the Enterprise Content Analysis Pla
 ├── content_analyzer
 │   ├── __init__.py
 │   ├── analyzer.py
-│   └── document_processor.py
+│   ├── document_processor.py
+│   └── cost_tracker.py
 ├── .env.example
 ├── README.md
 └── requirements.txt
@@ -29,4 +30,8 @@ This document outlines the plan for creating the Enterprise Content Analysis Pla
     -   **General Business:** Focuses on content classification, key insights, sentiment, strategic implications, risks, and action items.
     -   **Competitive Intelligence:** Concentrates on competitor identification, market positioning, and threat analysis.
     -   **Customer Feedback:** Centers on sentiment analysis, pain point identification, and feature requests.
-9.  The analysis results will be displayed in a structured JSON format in the Streamlit app.
+9.  Implement a `CostTracker` class to track daily and monthly API usage, save data to a JSON file, and calculate costs based on OpenAI pricing (with placeholder values for now). It will have methods for recording usage, getting daily/monthly usage, and checking affordability.
+10. Set daily budget limit to $450 and monthly to $2000.
+11. Display remaining budget in the Streamlit sidebar.
+12. Check if an analysis can be afforded before processing.
+13. The analysis results will be displayed in a structured JSON format in the Streamlit app.
