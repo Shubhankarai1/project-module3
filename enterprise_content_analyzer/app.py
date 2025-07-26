@@ -46,6 +46,10 @@ with col1:
         try:
             processor = DocumentProcessor()
             st.session_state.processed_text, st.session_state.metadata = processor.process_file(tmp_file_path)
+        except Exception as e:
+            st.error(f"Error processing file: {e}. Please ensure it's a valid PDF, DOCX, or TXT file.")
+            st.session_state.processed_text = None
+            st.session_state.metadata = None
         finally:
             os.remove(tmp_file_path)
 
