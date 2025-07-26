@@ -1,35 +1,66 @@
 import streamlit as st
 from content_analyzer.analyzer import ContentAnalyser
+from content_analyzer.document_processor import DocumentProcessor
+import os
+import tempfile
 
 st.set_page_config(layout="wide")
 
 st.title("Enterprise Content Analysis Report")
 
+# Initialize session state
+if 'processed_text' not in st.session_state:
+    st.session_state.processed_text = None
+if 'metadata' not in st.session_state:
+    st.session_state.metadata = None
+
 col1, col2 = st.columns([2, 1])
 
 with col1:
-    st.write("Select the analysis type and upload your content below.")
+    st.write("Select the analysis type and upload your document below.")
     analysis_type = st.selectbox(
         "Analysis Type",
         ("General Business", "Competitive Intelligence", "Customer Feedback")
     )
-    uploaded_files = st.file_uploader("Content to analyze", accept_multiple_files=True, label_visibility="collapsed")
     
+    uploaded_file = st.file_uploader(
+        "Upload a document to analyze",
+        type=["txt", "pdf", "docx"],
+        accept_multiple_files=False
+    )
+
+    if uploaded_file:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(uploaded_file.name)[1]) as tmp_file:
+            tmp_file.write(uploaded_file.getvalue())
+            tmp_file_path = tmp_file.name
+        
+        try:
+            processor = DocumentProcessor()
+            st.session_state.processed_text, st.session_state.metadata = processor.process_file(tmp_file_path)
+        finally:
+            os.remove(tmp_file_path)
+
     analyze_button = st.button("Analyse")
 
 with col2:
-    st.subheader("Estimated Cost")
-    if uploaded_files:
-        total_size_in_bytes = sum(file.size for file in uploaded_files)
-        total_size_in_mb = total_size_in_bytes / (1024 * 1024)
-        cost = total_size_in_mb * 0.05
-        st.info(f"Estimated cost for analyzing {len(uploaded_files)} file(s) ({total_size_in_mb:.2f} MB): **${cost:.4f}**")
+    st.subheader("Document Details")
+    if st.session_state.metadata:
+        metadata = st.session_state.metadata
+        st.info(
+            f"**File Type:** {metadata['type']}  \n"
+            f"**File Size:** {metadata['size'] / 1024:.2f} KB  \n"
+            f"**Token Count:** {metadata['token_count']}"
+        )
+        
+        st.subheader("Estimated Cost")
+        # Assuming a placeholder cost of $0.0005 per 1000 tokens ($0.50 per 1M tokens)
+        cost = (st.session_state.metadata['token_count'] / 1000) * 0.0005
+        st.success(f"Estimated cost for this analysis: **${cost:.4f}**")
     else:
-        st.info("Each analysis costs an estimated **$0.05 per MB**.")
-    
+        st.info("Upload a document to see details and cost estimation.")
+
     st.subheader("About")
     st.write("This tool uses advanced AI to analyze your content, providing a summary, sentiment analysis, and key points.")
-
 
 def display_analysis_results(analysis, analysis_type):
     st.markdown("### Analysis Report")
@@ -44,18 +75,15 @@ def display_analysis_results(analysis, analysis_type):
         else:
             st.markdown(value)
 
-
-if analyze_button and uploaded_files:
-    content_input = ""
-    for uploaded_file in uploaded_files:
-        content_input += uploaded_file.read().decode("utf-8") + "\n"
+if analyze_button and st.session_state.processed_text:
+    content_input = st.session_state.processed_text
     try:
         analyser = ContentAnalyser()
     except ValueError as e:
         st.error(e)
         st.stop()
 
-    with st.spinner(f"Analyzing content with {analysis_type} analysis..."):
+    with st.spinner(f"Analyzing content with {analysis_type} analysis..."): 
         analysis = analyser.analyze_content(content_input, analysis_type)
         
         st.divider()
@@ -67,5 +95,5 @@ if analyze_button and uploaded_files:
             st.success("Analysis complete!")
             display_analysis_results(analysis, analysis_type)
 
-elif analyze_button and not uploaded_files:
-    st.warning("Please upload some content to analyze.")
+elif analyze_button and not st.session_state.processed_text:
+    st.warning("Please upload a document to analyze.")

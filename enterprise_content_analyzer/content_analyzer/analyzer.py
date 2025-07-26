@@ -1,4 +1,3 @@
-
 import os
 import openai
 from dotenv import load_dotenv
@@ -113,8 +112,7 @@ class ContentAnalyser:
 
         template = self.prompt_templates[analysis_type]
         
-        prompt = f"""
-Please analyze the following text based on the "{analysis_type}" analysis type and provide a detailed analysis in JSON format. The analysis should follow this structure:
+        prompt = f"""Please analyze the following text based on the "{analysis_type}" analysis type and provide a detailed analysis in JSON format. The analysis should follow this structure:
 
 {json.dumps(template, indent=2)}
 
